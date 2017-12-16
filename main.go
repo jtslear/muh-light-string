@@ -4,11 +4,13 @@ import (
 	"io"
 	"log"
 	"net/http"
+
 	"github.com/lucasb-eyer/go-colorful"
-	"periph.io/x/periph/conn/gpio/gpioreg"
+	"gobot.io/x/gobot/drivers/gpio"
+	"gobot.io/x/gobot/platforms/raspi"
 )
 
-var indexHtml string = `
+var indexHTML = `
 <html>
   <body>
     <form action="/" method="post">
@@ -22,10 +24,11 @@ var indexHtml string = `
   </body>
 </html>
 `
+
 func testFunction(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		io.WriteString(w, indexHtml)
+		io.WriteString(w, indexHTML)
 	case http.MethodPost:
 		err := r.ParseForm()
 		if err != nil {
@@ -52,12 +55,24 @@ func testFunction(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	log.Println("Initting GPIO Pin 12...")
-	seven := gpioreg.ByName("12")
-	if seven == nil {
-		log.Fatal("Failed to init GPIO12")
+	a := raspi.NewAdaptor()
+	// These are the PHYSICAL pins here...
+	roy := gpio.NewRgbLedDriver(a, "12", "11", "7")
+	if roy.State() {
+		log.Printf("It would appear on\n")
+	} else {
+		log.Printf("It is not on\n")
 	}
-	log.Printf("%s: %s\n", seven, seven.Function())
+	err := roy.On()
+	if err != nil {
+		log.Printf("Problem turning on the LED's: %v\n", err)
+		panic(err)
+	}
+	if roy.State() {
+		log.Printf("It would appear on\n")
+	} else {
+		log.Printf("It is not on\n")
+	}
 	http.HandleFunc("/", testFunction)
 	port := "6060"
 
